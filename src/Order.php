@@ -6,171 +6,89 @@ use Psr\Log\LoggerInterface;
 
 class Order {
 
-  use \Psr\Log\LoggerTrait;
+  const precision = 9;
+  const fee = 0.0025;
 
-  protected $logger;
-  protected $trader;
+  protected $AccountId = NULL;
+  protected $OrderUuid = NULL;
+  protected $Exchange = 'BTC-ETH';
+  protected $Type = 'LIMIT_BUY';
+  protected $Quantity = 1000;
+  protected $QuantityRemaining = 1000;
+  protected $Limit = 1.00;
+  protected $Reserved = 1.000000000000;
+  protected $ReserveRemaining = 1.0000000000;
+  protected $CommissionReserved = 0.0;
+  protected $CommissionReserveRemaining = 0.0;
+  protected $CommissionPaid = 0;
+  protected $Price = 0;
+  protected $PricePerUnit = NULL;
+  protected $Opened = '2014-07-13T07:45:46.27';
+  protected $Closed = NULL;
+  protected $IsOpen = true;
+  protected $Sentinel = '';
+  protected $CancelInitiated = false;
+  protected $ImmediateOrCancel = false;
+  protected $IsConditional = false;
+  protected $Condition = 'NONE';
+  protected $ConditionTarget = NULL;
 
-  protected $position;
-  protected $market;
-  protected $quantity;
-  protected $rate;
-  protected $subtotal;
-  protected $fee;
-  protected $total;
-  protected $uuid;
-
-  public function __construct(Trader $trader, LoggerInterface $logger)
+  public function getProperty($prop)
   {
-    $this->trader = $trader;
-    $this->logger = $logger;
+      return $this->{$prop};
   }
 
-  public function getPosition()
+  public function setProperty($prop, $value)
   {
-    return $this->position;
-  }
-
-  public function getMarket()
-  {
-    return $this->market;
-  }
-
-  public function getOrderName()
-  {
-    list($base, $counter) = explode('-', $this->market);
-    return $this->position == 'buy' ? "$base=>$counter" : "$counter->$base";
-  }
-
-  public function buy($market, $quantity, $rate)
-  {
-    $quantity = $this->calcuateQuantity($quantity, $rate);
-
-    if (isset($this->position)) {
-      throw new \Exception("Cannot modify order once a position is taken.");
+    if (!isset($this->{$prop})) {
+      throw new \InvalidArgumentException("No such property: $prop");
     }
-    $this->position = 'buy';
-    $this->market = $market;
-    // Counter currency.
-    $this->quantity = $quantity;
-    $this->rate = $rate;
-  }
-
-  public function sell($market, $quantity, $rate)
-  {
-    if (isset($this->position)) {
-      throw new \Exception("Cannot modify order once a position is taken.");
-    }
-    $this->position = 'sell';
-    $this->market = $market;
-    // Counter currency.
-    $this->quantity = $quantity;
-    $this->rate = $rate;
-  }
-
-  public function changeQuantity($quantity)
-  {
-    if ($this->position == 'buy') {
-      $quantity = $this->calcuateQuantity($quantity, $this->rate);
-    }
-    $this->quantity = $quantity;
-    $this->simulate();
+    $this->{$prop} = $value;
     return $this;
   }
 
-  public function simulate()
+  static public function buyLimit($market, $quantity, $rate)
   {
-    if (!isset($this->position)) {
-      throw new \Exception("No buy or sell position specified.");
-    }
-
-    list($base, $counter) = explode('-', $this->market);
-
-    $this->debug("Simulate $this->position order on $this->market for $this->quantity $counter @ $this->rate $base.");
-
-    $this->subtotal = bcmul($this->quantity, $this->rate, Market::precision);
-    $this->fee = bcmul($this->subtotal, 0.0025, Market::precision);
-
-    $this->debug("\tSubtotal: $this->subtotal");
-    $this->debug("\tFee: $this->fee");
-
-    $this->total = bcadd($this->fee, $this->subtotal, Market::precision);
-    $this->debug("\tTotal: $this->total");
-
-    // Check wallet.
-    $balance = min($this->trader->getBalance($base), 1);
-
-    if ($balance >= $this->total) {
-      $this->debug("Order can be purchased with wallet balance.");
-    }
-    else {
-      $this->trader->debug("Insufficent funds in wallet: $balance $base. Require $this->total $base");
-    }
-
-    return $this->position == 'buy' ? $this->quantity : $this->subtotal;
+    $order = new static();
+    $order->setProperty('Type', 'LIMIT_BUY')
+          ->setProperty('Exchange', $market)
+          ->setProperty('Quantity', $quantity)
+          ->setProperty('Limit', $rate)
+          ->setPrice();
+    return $order;
   }
 
-  public function execute()
+  static public function sellLimit($market, $quantity, $rate)
   {
-    $method = $this->position == 'buy' ? 'buyLimit' : 'sellLimit';
+    $order = new static();
+    $order->setProperty('Type', 'LIMIT_SELL')
+          ->setProperty('Exchange', $market)
+          ->setProperty('Quantity', $quantity)
+          ->setProperty('Limit', $rate)
+          ->setPrice();
+    return $order;
+  }
 
-    $this->info("Calling $method($this->market, $this->quantity, $this->rate)");
-    $ticket = call_user_func([$this->trader->getClient(), $method], $this->market, $this->quantity, $this->rate);
-    $this->uuid = $ticket['uuid'];
-    $this->info("Order created: $this->uuid");
+  public function setPrice()
+  {
+    $subtotal = bcmul($this->Quantity, $this->Limit, Order::precision);
+    $fee = bcmul($subtotal, Order::fee, Order::precision);
 
-    //$wait = 4;
-    // Wait for order to fill.
-    while (sleep(2) || TRUE) {
-      $o = $this->trader->getClient()->getOrder($this->uuid);
-
-      if (!$o['IsOpen']) {
+    switch ($this->Type) {
+      case 'LIMIT_SELL':
+        $this->Price = bcsub($subtotal, $fee, Order::precision);
         break;
-      }
 
-      // if (!$wait) {
-      //   $this->error("Order fill took too long, cancelling...");
-      //   $this->trader->getClient()->cancel($this->uuid);
-      //   $o['CancelInitiated'] = 1;
-      //   break;
-      // }
-      $this->info("Waiting for $this->market $this->position order to be filled. {$o['QuantityRemaining']} units remaining.");
-
-      //$wait--;
+      case 'LIMIT_BUY':
+      default:
+        $this->Price = bcadd($fee, $subtotal, Order::precision);
+        break;
     }
-
-    if ($o['CancelInitiated']) {
-      throw new \Exception("Order was cancelled. Trade stopped.");
-    }
-
-    $this->info("Asking quantity: $this->quantity. Got {$o['Quantity']} units.");
-
-    if ($this->position == 'buy') {
-      $this->info("Order cost {$o['Price']}. Estimated Subtotal: $this->subtotal. Estimated Total: $this->total.");
-      return $o['Quantity'];
-    }
-    else {
-      $this->info("Order made {$o['Price']}. Estimated Subtotal: $this->subtotal. Estimated Total: $this->total.");
-      return $o['Price'];
-    }
-  }
-
-  public function calcuateQuantity($coin, $rate, $pos = 'buy')
-  {
-    if (empty(floatval($coin)) || empty(floatval($rate))) {
-      return 0.00000000;
-    }
-    return ($pos == 'buy') ? bcdiv($coin, $rate, Market::precision) : bcmul($coin, $rate, Market::precision);
   }
 
   static public function calculateTransactableVolume($balance)
   {
-    $p = bcdiv($balance, 100.25, Market::precision);
-    return bcmul($p, 100, Market::precision);
-  }
-
-  public function log($level, $message, array $context = array())
-  {
-    $this->logger->log($level, $message, $context);
+    $p = bcdiv($balance, 100.25, Order::precision);
+    return bcmul($p, 100, Order::precision);
   }
 }
