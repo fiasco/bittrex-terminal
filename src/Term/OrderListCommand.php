@@ -45,11 +45,11 @@ class OrderListCommand extends Command {
          $order['Limit'],
          $order['Quantity'],
          $order['Price'],
-         $order['TimeStamp']
+         $order['Opened']
        ];
      }
      $table = new Table($output);
-     $table->setHeaders(['UUID', 'Type', 'Market', 'Rate', 'Quantity', 'Price', 'Timestamp']);
+     $table->setHeaders(['UUID', 'Type', 'Market', 'Rate', 'Quantity', 'Price', 'Opened']);
      $table->setRows($rows);
      $table->render();
 

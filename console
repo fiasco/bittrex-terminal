@@ -4,11 +4,13 @@
 
 require __DIR__.'/vendor/autoload.php';
 
-use Symfony\Component\Console\Application;
+use Bittrex\Application\KernelApplication;
 use Bittrex\Command\TerminalCommand;
+use Bittrex\Term\WalletShowCommand;
 
 $command = new TerminalCommand();
-$application = new Application();
+$application = new KernelApplication();
 $application->add($command);
 $application->setDefaultCommand($command->getName());
+$application->add(new WalletShowCommand());
 $application->run();

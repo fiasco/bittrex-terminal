@@ -4,6 +4,7 @@ namespace Bittrex\Application;
 
 use Symfony\Component\Console\Application;
 use Bittrex\Storage\JsonStorage;
+use Bittrex\Client;
 
 class KernelApplication extends Application {
   protected $storage;
@@ -16,6 +17,11 @@ class KernelApplication extends Application {
   {
     parent::__construct($name, $version);
     $this->storage = new JsonStorage();
+
+    $keys = file_get_contents('keys.json');
+    $keys = json_decode($keys);
+
+    $this->getStorage()->set('api', new Client($keys->Key, $keys->Secret));
   }
 
   public function getStorage()

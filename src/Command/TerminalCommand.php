@@ -8,7 +8,6 @@ use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\Question;
 use Bittrex\Application\KernelApplication;
-use Bittrex\Client;
 
 class TerminalCommand extends Command
 {
@@ -35,11 +34,6 @@ class TerminalCommand extends Command
 
         $application = new KernelApplication();
         $application->setAutoExit(FALSE);
-
-        $keys = file_get_contents('keys.json');
-        $keys = json_decode($keys);
-
-        $application->getStorage()->set('api', new Client($keys->Key, $keys->Secret));
 
         $autocomplete = [];
 
@@ -69,17 +63,19 @@ class TerminalCommand extends Command
     {
       return [
         'Bittrex\Term\WalletShowCommand',
-        'Bittrex\Term\PositionCreateCommand',
-        'Bittrex\Term\PositionListCommand',
-        'Bittrex\Term\PositionAnalyseCommand',
-        'Bittrex\Term\PositionRemoveCommand',
+        // 'Bittrex\Term\PositionCreateCommand',
+        // 'Bittrex\Term\PositionListCommand',
+        // 'Bittrex\Term\PositionAnalyseCommand',
+        // 'Bittrex\Term\PositionRemoveCommand',
         'Bittrex\Term\MarketShowCommand',
         'Bittrex\Term\OrderListCommand',
         'Bittrex\Term\OrderShowCommand',
         'Bittrex\Term\OrderCancelCommand',
         'Bittrex\Term\OrderHistoryCommand',
+        'Bittrex\Term\OrderStatesCommand',
         'Bittrex\Term\BuyCommand',
         'Bittrex\Term\SellCommand',
+        'Bittrex\Term\CoinAnalyseCommand',
 
         //'trade.routes' => 'Bittrex\Term\TradeRoutesCommand',
       ];
