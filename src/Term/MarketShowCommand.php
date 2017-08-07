@@ -27,8 +27,7 @@ class MarketShowCommand extends Command {
    protected function execute(InputInterface $input, OutputInterface $output)
    {
      $markets = $this->getApplication()
-        ->getStorage()
-        ->get('api')
+        ->api()
         ->getMarketSummary($input->getArgument('market'));
 
      $rows = [];

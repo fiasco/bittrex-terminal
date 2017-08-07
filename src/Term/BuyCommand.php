@@ -49,8 +49,7 @@ class BuyCommand extends Command {
 
      // Check balances
      $balance = $this->getApplication()
-                      ->getStorage()
-                      ->get('api')
+                      ->api()
                       ->getBalance($base);
 
      $arguments['command'] = 'market.show';
@@ -96,8 +95,7 @@ class BuyCommand extends Command {
      $output->writeln("Placing order...");
 
      $uuid = $this->getApplication()
-              ->getStorage()
-              ->get('api')
+              ->api()
               ->buyLimit($market, $quantity, $rate);
 
      sleep(1);

@@ -26,8 +26,7 @@ class OrderHistoryCommand extends Command {
    protected function execute(InputInterface $input, OutputInterface $output)
    {
      $orders = $this->getApplication()
-        ->getStorage()
-        ->get('api')
+        ->api()
         ->getOrderHistory();
 
      if (!count($orders)) {

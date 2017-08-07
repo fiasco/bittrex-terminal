@@ -27,8 +27,7 @@ class OrderCancelCommand extends Command {
    protected function execute(InputInterface $input, OutputInterface $output)
    {
      $orders = $this->getApplication()
-        ->getStorage()
-        ->get('api')
+        ->api()
         ->cancel($input->getArgument('uuid'));
 
      $output->writeln("Order cancelled.");

@@ -63,10 +63,6 @@ class TerminalCommand extends Command
     {
       return [
         'Bittrex\Term\WalletShowCommand',
-        // 'Bittrex\Term\PositionCreateCommand',
-        // 'Bittrex\Term\PositionListCommand',
-        // 'Bittrex\Term\PositionAnalyseCommand',
-        // 'Bittrex\Term\PositionRemoveCommand',
         'Bittrex\Term\MarketShowCommand',
         'Bittrex\Term\OrderListCommand',
         'Bittrex\Term\OrderShowCommand',
@@ -76,8 +72,6 @@ class TerminalCommand extends Command
         'Bittrex\Term\BuyCommand',
         'Bittrex\Term\SellCommand',
         'Bittrex\Term\CoinAnalyseCommand',
-
-        //'trade.routes' => 'Bittrex\Term\TradeRoutesCommand',
       ];
     }
 }

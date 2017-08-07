@@ -7,7 +7,8 @@ use Bittrex\Storage\JsonStorage;
 use Bittrex\Client;
 
 class KernelApplication extends Application {
-  protected $storage;
+
+  protected $client;
 
   /**
    * @param string $name    The name of the application
@@ -16,17 +17,16 @@ class KernelApplication extends Application {
   public function __construct($name = 'UNKNOWN', $version = 'UNKNOWN')
   {
     parent::__construct($name, $version);
-    $this->storage = new JsonStorage();
 
     $keys = file_get_contents('keys.json');
     $keys = json_decode($keys);
 
-    $this->getStorage()->set('api', new Client($keys->Key, $keys->Secret));
+    $this->client = new Client($keys->Key, $keys->Secret);
   }
 
-  public function getStorage()
+  public function api()
   {
-    return $this->storage;
+    return $this->client;
   }
 
 }

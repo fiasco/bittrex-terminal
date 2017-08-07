@@ -49,8 +49,7 @@ class SellCommand extends Command {
 
      // Check balances
      $balance = $this->getApplication()
-                      ->getStorage()
-                      ->get('api')
+                      ->api()
                       ->getBalance($counter);
 
     if (empty($balance['Available'])) {
@@ -93,8 +92,7 @@ class SellCommand extends Command {
      $output->writeln("Placing order...");
 
      $uuid = $this->getApplication()
-              ->getStorage()
-              ->get('api')
+              ->api()
               ->sellLimit($market, $quantity, $rate);
 
      sleep(1);

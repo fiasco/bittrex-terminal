@@ -27,8 +27,7 @@ class OrderShowCommand extends Command {
    protected function execute(InputInterface $input, OutputInterface $output)
    {
      $order = $this->getApplication()
-        ->getStorage()
-        ->get('api')
+        ->api()
         ->getOrder($input->getArgument('uuid'));
 
      $rows = [];

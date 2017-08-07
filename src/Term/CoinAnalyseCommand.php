@@ -29,8 +29,7 @@ class CoinAnalyseCommand extends Command {
      $currency = $input->getArgument('currency');
 
      $markets = $this->getApplication()
-        ->getStorage()
-        ->get('api')
+        ->api()
         ->getMarketSummaries();
 
      $rows = [];

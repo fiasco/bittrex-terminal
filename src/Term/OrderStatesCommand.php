@@ -26,8 +26,7 @@ class OrderStatesCommand extends Command {
    protected function execute(InputInterface $input, OutputInterface $output)
    {
      $orders = $this->getApplication()
-        ->getStorage()
-        ->get('api')
+        ->api()
         ->getOrderHistory();
 
      if (!count($orders)) {
@@ -36,13 +35,11 @@ class OrderStatesCommand extends Command {
      }
 
      $balances = $this->getApplication()
-        ->getStorage()
-        ->get('api')
+        ->api()
         ->getBalances();
 
      $data = $this->getApplication()
-        ->getStorage()
-        ->get('api')
+        ->api()
         ->getMarketSummaries();
 
      $markets = [];

@@ -26,22 +26,19 @@ class WalletShowCommand extends Command {
    {
      //$output->writeln("Getting balances...");
      $balances = $this->getApplication()
-                      ->getStorage()
-                      ->get('api')
+                      ->api()
                       ->getBalances();
 
      //$output->writeln("Getting last orders...");
 
      $orders = $this->getApplication()
-                      ->getStorage()
-                      ->get('api')
+                      ->api()
                       ->getOrderHistory();
 
      //$output->writeln("Getting current market rates");
 
      $data = $this->getApplication()
-                     ->getStorage()
-                     ->get('api')
+                     ->api()
                      ->getMarketSummaries();
 
      $markets = [];

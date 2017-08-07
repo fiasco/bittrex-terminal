@@ -26,8 +26,7 @@ class OrderListCommand extends Command {
    protected function execute(InputInterface $input, OutputInterface $output)
    {
      $orders = $this->getApplication()
-        ->getStorage()
-        ->get('api')
+        ->api()
         ->getOpenOrders();
 
      if (!count($orders)) {
