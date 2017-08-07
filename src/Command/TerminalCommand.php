@@ -27,13 +27,33 @@ class TerminalCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        $logo = <<<HTML
+
+██████╗ ██╗████████╗████████╗██████╗ ███████╗██╗  ██╗
+██╔══██╗██║╚══██╔══╝╚══██╔══╝██╔══██╗██╔════╝╚██╗██╔╝
+██████╔╝██║   ██║      ██║   ██████╔╝█████╗   ╚███╔╝
+██╔══██╗██║   ██║      ██║   ██╔══██╗██╔══╝   ██╔██╗
+██████╔╝██║   ██║      ██║   ██║  ██║███████╗██╔╝ ██╗
+╚═════╝ ╚═╝   ╚═╝      ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝
+████████╗███████╗██████╗ ███╗   ███╗██╗███╗   ██╗ █████╗ ██╗
+╚══██╔══╝██╔════╝██╔══██╗████╗ ████║██║████╗  ██║██╔══██╗██║
+   ██║   █████╗  ██████╔╝██╔████╔██║██║██╔██╗ ██║███████║██║
+   ██║   ██╔══╝  ██╔══██╗██║╚██╔╝██║██║██║╚██╗██║██╔══██║██║
+   ██║   ███████╗██║  ██║██║ ╚═╝ ██║██║██║ ╚████║██║  ██║███████╗
+   ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝╚══════╝
+
+HTML;
+
+
         $helper = $this->getHelper('question');
-        $question = new Question('> ', '');
+        $question = new Question('<comment>Bittrex</comment> > ', '');
         $registry = $this->commandRegistry();
 
-
-        $application = new KernelApplication();
+        $application = new KernelApplication("<info>$logo</info>", "version 0.1");
         $application->setAutoExit(FALSE);
+
+        $in = new ArgvInput(['help']);
+        $application->run($in, $output);
 
         $autocomplete = [];
 
