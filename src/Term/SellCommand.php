@@ -98,7 +98,7 @@ class SellCommand extends Command {
      sleep(1);
 
     $arguments = [];
-    $arguments['command'] = 'order.show';
+    $arguments['command'] = 'order';
     $arguments['uuid'] = $uuid['uuid'];
 
     $i = new ArrayInput($arguments);

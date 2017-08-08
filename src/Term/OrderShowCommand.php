@@ -13,7 +13,7 @@ class OrderShowCommand extends Command {
   {
     $this
        // the name of the command (the part after "bin/console")
-       ->setName('order.show')
+       ->setName('order')
 
        // the short description shown while running "php bin/console list"
        ->setDescription('Show an order')

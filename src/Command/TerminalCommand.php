@@ -44,34 +44,34 @@ class TerminalCommand extends Command
 
 HTML;
 
+        $output->writeln("<info>$logo</info>");
 
         $helper = $this->getHelper('question');
         $question = new Question('<comment>Bittrex</comment> > ', '');
         $registry = $this->commandRegistry();
 
-        $application = new KernelApplication("<info>$logo</info>", "version 0.1");
-        $application->setAutoExit(FALSE);
-
-        $in = new ArgvInput(['help']);
-        $application->run($in, $output);
+        $kernel = new KernelApplication("<info>$logo</info>", "version 0.1");
+        $kernel->setAutoExit(FALSE);
 
         $autocomplete = [];
 
         foreach ($registry as $command) {
           $instance = new $command();
           $autocomplete[] = $instance->getName();
-          $application->add($instance);
+          $kernel->add($instance);
         }
 
         $question->setAutocompleterValues($autocomplete);
+
+        $kernel->run(new ArgvInput([__FILE__, 'help']), $output);
 
         while (TRUE) {
           $in = $helper->ask($input, $output, $question);
           $in = explode(' ', $in);
           array_unshift($in, __FILE__);
-          $in = new ArgvInput($in);
           try {
-            $application->run($in, $output);
+            $kernel->run(new ArgvInput($in), $output);
+            $output->writeln('<comment>Completed at ' . date('c') . '</comment>');
           }
           catch (\Exception $e) {
             $output->writeln($e->getMessage());

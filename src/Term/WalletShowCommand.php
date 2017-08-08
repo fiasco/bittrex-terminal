@@ -12,7 +12,7 @@ class WalletShowCommand extends Command {
   {
     $this
        // the name of the command (the part after "bin/console")
-       ->setName('wallet.show')
+       ->setName('wallet')
 
        // the short description shown while running "php bin/console list"
        ->setDescription('Shows the balances of all wallets used.')
@@ -51,7 +51,7 @@ class WalletShowCommand extends Command {
      $usdTotal = 0.0;
 
      foreach ($balances as &$wallet) {
-       $wallet['Value'] = '';
+       $wallet['USD'] = '';
        $wallet['Balance'] = number_format($wallet['Balance'], 9, '.', '');
        $wallet['Available'] = number_format($wallet['Available'], 9, '.', '');
        unset($wallet['Pending'], $wallet['CryptoAddress']);
@@ -91,7 +91,7 @@ class WalletShowCommand extends Command {
          $value = bcmul($wallet['Balance'], $market['Ask'], 9);
          $value = bcmul($value, $usd['Ask'], 2);
          $usdTotal = bcadd($usdTotal, $value, 4);
-         $wallet['Value'] = '$' . number_format($value,2);
+         $wallet['USD'] = number_format($value,2);
 
          $wallet['Volume'] = number_format(bcmul($market['Volume'], $market['Ask']));
        }
@@ -99,9 +99,13 @@ class WalletShowCommand extends Command {
        elseif ($wallet['Currency'] == 'BTC') {
          $value = bcmul($wallet['Balance'], $usd['Ask'], 2);
          $usdTotal = bcadd($usdTotal, $value, 4);
-         $wallet['Value'] = '$' . number_format($value,2);
+         $wallet['USD'] = number_format($value,2);
          $wallet['Volume'] = number_format(floor($market['Volume']));
        }
+     }
+
+     foreach ($balances as &$wallet) {
+       $wallet['Portfolio %'] = (bcdiv($wallet['USD'], $usdTotal, 4) * 100) . '%';
      }
 
      $headers = array_values($balances);
