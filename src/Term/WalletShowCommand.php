@@ -6,6 +6,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Command\Command;
+use Bittrex\Math\Math;
 
 class WalletShowCommand extends Command {
   protected function configure()
@@ -41,6 +42,8 @@ class WalletShowCommand extends Command {
                      ->api()
                      ->getMarketSummaries();
 
+     $math = new Math();
+
      $markets = [];
      foreach ($data as $market) {
        $markets[$market['MarketName']] = $market;
@@ -70,54 +73,58 @@ class WalletShowCommand extends Command {
          array_walk($market, [$this, 'castFloatToString']);
 
          // Spread: How much the currency moves in a 24-hr period.
-         $variation = bcsub($market['High'], $market['Low'], 9);
+         $variation = $math->sub($market['High'], $market['Low']);
          if (floatval($variation)) {
-           $variation = bcdiv($variation, $market['Low'], 9);
-           $wallet['Spread'] = bcmul($variation, 100, 1) . '%';
+           $variation = $math->div($variation, $market['Low']);
+           $wallet['Spread'] = $math->float($math->mul($variation, 100), 2) . '%';
          }
 
          // What the current sell rate is.
-         $wallet['Ask'] = number_format($market['Ask'], 9, '.', '');
+         $wallet['Ask'] = $math->float($market['Ask'], 9, '.', '');
 
-         $direction = bcsub($market['Ask'], $market['Low'], 9);
+         $direction = $math->sub($market['Ask'], $market['Low']);
          if (floatval($direction)) {
-           $direction = bcdiv($direction, $market['Low'], 9);
-           $direction = bcdiv($direction, $variation, 9);
-           $direction = bcmul($direction, 100, 2);
-           $wallet['Direction'] = $direction . '%';
+           $direction = $math->div($direction, $market['Low'], $variation);
+           // $direction = $math->div($direction, $variation);
+           $direction = $math->mul($direction, 100);
+           $wallet['Direction'] = $math->float($direction, 2) . '%';
          }
 
          // What the estimated USD value is.
-         $value = bcmul($wallet['Balance'], $market['Ask'], 9);
-         $value = bcmul($value, $usd['Ask'], 2);
-         $usdTotal = bcadd($usdTotal, $value, 4);
-         $wallet['USD'] = number_format($value,2);
+         $value = $math->mul($wallet['Balance'], $market['Ask']);
+         $value = $math->mul($value, $usd['Ask']);
+         $usdTotal = $math->add($usdTotal, $value, 4);
+         $wallet['USD'] = $math->float($value, 2);
 
-         $wallet['Volume'] = number_format(bcmul($market['Volume'], $market['Ask']));
+         $wallet['Volume'] = round($math->mul($market['Volume'], $market['Ask']));
        }
        // Because currency is based on BTC value, we have to handle this one.
        elseif ($wallet['Currency'] == 'BTC') {
-         $value = bcmul($wallet['Balance'], $usd['Ask'], 2);
-         $usdTotal = bcadd($usdTotal, $value, 4);
-         $wallet['USD'] = number_format($value,2);
-         $wallet['Volume'] = number_format(floor($market['Volume']));
+         $value = $math->mul($wallet['Balance'], $usd['Ask']);
+         $usdTotal = $math->add($usdTotal, $value);
+         $wallet['USD'] = $math->float($value, 2);
+         $wallet['Volume'] = $math->float($market['Volume'], 0);
        }
      }
 
+     $rows = [];
      foreach ($balances as &$wallet) {
-       $wallet['Portfolio %'] = (bcdiv($wallet['USD'], $usdTotal, 4) * 100) . '%';
+       if (!floatval($wallet['Balance'])) {
+         continue;
+       }
+       $wallet['Portfolio %'] = $math->float($math->div($wallet['USD'], $usdTotal) * 100, 2) . '%';
+       $rows[] = $wallet;
      }
 
-     $headers = array_values($balances);
-     $headers = array_keys($headers[0]);
+     $headers = array_keys($rows[0]);
 
      $table = new Table($output);
      $table
           ->setHeaders($headers)
-          ->setRows($balances);
+          ->setRows($rows);
      $table->render();
 
-     $output->writeln("<info>Total: \$" . number_format($usdTotal, 2) . " USD</info>");
+     $output->writeln("<info>Total: \$" . $math->format($usdTotal, 2) . " USD</info>");
      $output->writeln("<info>Ask:</info> The current rate for the currency");
      $output->writeln("<info>Spread:</info> The difference between the 24hr high and low");
      $output->writeln("<info>Direction:</info> Where the current Ask sits in today's high low spread");

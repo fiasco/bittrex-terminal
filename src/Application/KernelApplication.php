@@ -18,6 +18,9 @@ class KernelApplication extends Application {
   {
     parent::__construct($name, $version);
 
+    // Bittrex operates in UTC.
+    date_default_timezone_get('UTC');
+
     $keys = file_get_contents('keys.json');
     $keys = json_decode($keys);
 

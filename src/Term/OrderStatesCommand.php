@@ -7,6 +7,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
+use Bittrex\Math\Math;
 
 class OrderStatesCommand extends Command {
   protected function configure()
@@ -25,6 +26,7 @@ class OrderStatesCommand extends Command {
 
    protected function execute(InputInterface $input, OutputInterface $output)
    {
+     $math = new Math();
      $orders = $this->getApplication()
         ->api()
         ->getOrderHistory();
@@ -86,26 +88,28 @@ class OrderStatesCommand extends Command {
             // deduct the order quantity from the tracked sale and skip this
             // order so it isn't displayed.
             if ($sale[$counter] >= $order['Quantity']) {
-              $sale[$counter] = bcsub($sale[$counter], $order['Quantity'], 9);
+              $sale[$counter] = $math->sub($sale[$counter], $order['Quantity']);
               continue;
             }
 
             // Subtract the what's been sold since this order from the total
             // quantity position.
-            $order['Quantity'] = bcsub($order['Quantity'], $sale[$counter], 9);
+            $order['Quantity'] = $math->sub($order['Quantity'], $sale[$counter]);
             // Reset the sale tracker
             $sale[$counter] = 0;
 
-            $change = round(bcmul(bcdiv(
-              number_format($market['Bid'], 9, '.', ''),
-              number_format($order['Limit'], 9, '.', ''),
-            9), 100, 2) - 100, 2);
+            $change = round(
+              $math->mul($math->div($market['Bid'], $order['Limit']), 100) - 100,
+            2);
 
-            $oldValue = bcmul($order['Quantity'], $order['Limit'], 9);
-            $newValue = bcmul($order['Quantity'], $market['Bid'], 9);
-            $gain = bcsub($newValue, $oldValue, 9);
-            $usdGain = bcmul($gain, $usd['Bid'], 2);
-            $usdCashOut = bcadd($usdCashOut, $usdGain, 2);
+            $oldValue = $math->mul($order['Quantity'], $order['Limit']);
+            $newValue = $math->mul($order['Quantity'], $market['Bid']);
+            $gain = $math->sub($newValue, $oldValue);
+            $usdGain = $math->mul($gain, $usd['Bid']);
+            $usdCashOut = $math->add($usdCashOut, $usdGain);
+            $usdGain = number_format($usdGain, 2);
+            $usdSpend = $math->format($math->mul($oldValue, $usd['Bid']), 2);
+
             $gain = $gain > 0 ? "+$gain" : $gain;
 
             $tag = $change >= 0 ? 'info' : 'error';
@@ -115,6 +119,7 @@ class OrderStatesCommand extends Command {
               $counter,
               $order['Quantity'],
               number_format($order['Limit'], 9),
+              "\$$usdSpend",
               number_format($market['Bid'],9),
               "<$tag>$change%</$tag>",
               "<$tag>$gain</$tag>",
@@ -131,11 +136,39 @@ class OrderStatesCommand extends Command {
        }
      }
      $table = new Table($output);
-     $table->setHeaders(['UUID', 'Currency', 'Quantity', 'Buy-in', 'Current Bid', 'Change', 'P&L (BTC)', 'P&L (USD)']);
+     $table->setHeaders(['Age', 'Currency', 'Quantity', 'Buy-in', 'Buy-in (USD)', 'Current Bid', 'Change', 'P&L (BTC)', 'P&L (USD)']);
      $table->setRows($rows);
      $table->render();
 
      $tag = $usdCashOut >= 0 ? 'info' : 'error';
+     $usdCashOut = number_format($usdCashOut, 2);
      $output->writeln("Esitmated cash position: <$tag>\$$usdCashOut USD</$tag>");
    }
+
+   protected function format_interval($interval, $granularity = 2) {
+    $units = array(
+      '1 year|@count years' => 31536000,
+      '1 month|@count months' => 2592000,
+      '1 week|@count weeks' => 604800,
+      '1 day|@count days' => 86400,
+      '1 hour|@count hours' => 3600,
+      '1 min|@count min' => 60,
+      '1 sec|@count sec' => 1
+    );
+    $output = '';
+    foreach ($units as $key => $value) {
+      $key = explode('|', $key);
+      if ($interval >= $value) {
+        $time = floor($interval / $value);
+        $output .= ($output ? ' ' : '') . strtr(($time == 1 ? $key[0] : $key[1]), ['@count' => $time]);
+        $interval %= $value;
+        $granularity--;
+      }
+
+      if ($granularity == 0) {
+        break;
+      }
+    }
+    return $output;
+  }
 }
