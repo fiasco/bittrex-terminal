@@ -55,17 +55,19 @@ Options:
   -n, --no-interaction  Do not ask any interactive question
   -v|vv|vvv, --verbose  Increase the verbosity of messages: 1 for normal output, 2 for more verbose output and 3 for debug
 
-Available commands:
-  buy            Place a buy order on a market
-  coin.analyse   Shows a view of the market based on the given coin
-  help           Displays help for a command
-  list           Lists commands
-  market.show    Shows the state of a given market
-  order.cancel   Cancel an order
-  order.history  List your historic orders
-  order.list     List your current orders
-  order.show     Show an order
-  order.states   Order states
-  sell           Place a sell order on a market
-  wallet.show    Shows the balances of all wallets used.
+  Available commands:
+    buy              Place a buy order on a market
+    cancel           Cancel an order
+    coin.analyse     Shows a view of the market based on the given coin
+    deposit.history  Shows deposit history
+    help             Displays help for a command
+    history          List your historic orders
+    list             Lists commands
+    loop             Looks for amplifing loops in the trading market
+    market.show      Shows the state of a given market
+    order            Show an order
+    orders           List your current orders
+    position         Order states
+    sell             Place a sell order on a market
+    wallet           Shows the balances of all wallets used.
 ```
