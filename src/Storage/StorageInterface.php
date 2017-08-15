@@ -2,11 +2,9 @@
 
 namespace Bittrex\Storage;
 
-interface StorageInterface {
+interface StorageInterface
+{
+    public function get($key);
 
-  public function get($key);
-
-  public function set($key, $value);
+    public function set($key, $value);
 }
-
- ?>

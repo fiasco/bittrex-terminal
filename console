@@ -6,11 +6,11 @@ require __DIR__.'/vendor/autoload.php';
 
 use Bittrex\Application\KernelApplication;
 use Bittrex\Command\TerminalCommand;
-use Bittrex\Term\WalletShowCommand;
+use Bittrex\Term\LoopCommand;
 
 $command = new TerminalCommand();
 $application = new KernelApplication();
 $application->add($command);
 $application->setDefaultCommand($command->getName());
-$application->add(new WalletShowCommand());
+$application->add(new LoopCommand());
 $application->run();

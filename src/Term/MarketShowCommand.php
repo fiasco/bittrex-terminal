@@ -8,10 +8,11 @@ use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 
-class MarketShowCommand extends Command {
-  protected function configure()
-  {
-    $this
+class MarketShowCommand extends Command
+{
+    protected function configure()
+    {
+        $this
        // the name of the command (the part after "bin/console")
        ->setName('market.show')
 
@@ -22,26 +23,26 @@ class MarketShowCommand extends Command {
        // the "--help" option
        ->setHelp('Shows the state of a given market')
        ->addArgument('market', InputArgument::REQUIRED, 'The market to show. E.g. BTC-ETH');
-   }
+    }
 
-   protected function execute(InputInterface $input, OutputInterface $output)
-   {
-     $markets = $this->getApplication()
+    protected function execute(InputInterface $input, OutputInterface $output)
+    {
+        $markets = $this->getApplication()
         ->api()
         ->getMarketSummary($input->getArgument('market'));
 
-     $rows = [];
-     foreach ($markets[0] as $key => $value) {
-       if (is_float($value)) {
-         $value = number_format($value, 9);
-       }
-       $rows[] = [$key, $value];
-     }
+        $rows = [];
+        foreach ($markets[0] as $key => $value) {
+            if (is_float($value)) {
+                $value = number_format($value, 9);
+            }
+            $rows[] = [$key, $value];
+        }
 
-     $table = new Table($output);
-     $table->setRows($rows);
-     $table->render();
+        $table = new Table($output);
+        $table->setRows($rows);
+        $table->render();
 
-     return $markets[0];
-   }
+        return $markets[0];
+    }
 }

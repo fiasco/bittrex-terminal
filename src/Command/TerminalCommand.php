@@ -13,7 +13,7 @@ class TerminalCommand extends Command
 {
     protected function configure()
     {
-      $this
+        $this
          // the name of the command (the part after "bin/console")
          ->setName('shell')
 
@@ -50,38 +50,37 @@ HTML;
         $question = new Question('<comment>Bittrex</comment> > ', '');
         $registry = $this->commandRegistry();
 
-        $kernel = new KernelApplication("<info>$logo</info>", "version 0.1");
-        $kernel->setAutoExit(FALSE);
+        $kernel = new KernelApplication("<info>$logo</info>", 'version 0.1');
+        $kernel->setAutoExit(false);
 
         $autocomplete = [];
 
         foreach ($registry as $command) {
-          $instance = new $command();
-          $autocomplete[] = $instance->getName();
-          $kernel->add($instance);
+            $instance = new $command();
+            $autocomplete[] = $instance->getName();
+            $kernel->add($instance);
         }
 
         $question->setAutocompleterValues($autocomplete);
 
         $kernel->run(new ArgvInput([__FILE__, 'help']), $output);
 
-        while (TRUE) {
-          $in = $helper->ask($input, $output, $question);
-          $in = explode(' ', $in);
-          array_unshift($in, __FILE__);
-          try {
-            $kernel->run(new ArgvInput($in), $output);
-            $output->writeln('<comment>Completed at ' . date('c') . '</comment>');
-          }
-          catch (\Exception $e) {
-            $output->writeln($e->getMessage());
-          }
+        while (true) {
+            $in = $helper->ask($input, $output, $question);
+            $in = explode(' ', $in);
+            array_unshift($in, __FILE__);
+            try {
+                $kernel->run(new ArgvInput($in), $output);
+                $output->writeln('<comment>Completed at '.date('c').'</comment>');
+            } catch (\Exception $e) {
+                $output->writeln($e->getMessage());
+            }
         }
     }
 
     protected function commandRegistry()
     {
-      return [
+        return [
         'Bittrex\Term\WalletShowCommand',
         'Bittrex\Term\MarketShowCommand',
         'Bittrex\Term\OrderListCommand',
@@ -92,8 +91,8 @@ HTML;
         'Bittrex\Term\BuyCommand',
         'Bittrex\Term\SellCommand',
         'Bittrex\Term\CoinAnalyseCommand',
+        'Bittrex\Term\LoopCommand',
+        'Bittrex\Term\DepositHistoryCommand',
       ];
     }
 }
-
- ?>

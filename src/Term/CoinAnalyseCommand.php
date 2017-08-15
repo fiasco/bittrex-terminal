@@ -8,10 +8,11 @@ use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 
-class CoinAnalyseCommand extends Command {
-  protected function configure()
-  {
-    $this
+class CoinAnalyseCommand extends Command
+{
+    protected function configure()
+    {
+        $this
        // the name of the command (the part after "bin/console")
        ->setName('coin.analyse')
 
@@ -22,47 +23,46 @@ class CoinAnalyseCommand extends Command {
        // the "--help" option
        ->setHelp('Shows a view of the market based on the given coin')
        ->addArgument('currency', InputArgument::REQUIRED, 'A currency, e.g. DGB');
-   }
+    }
 
-   protected function execute(InputInterface $input, OutputInterface $output)
-   {
-     $currency = $input->getArgument('currency');
+    protected function execute(InputInterface $input, OutputInterface $output)
+    {
+        $currency = $input->getArgument('currency');
 
-     $markets = $this->getApplication()
+        $markets = $this->getApplication()
         ->api()
         ->getMarketSummaries();
 
-     $rows = [];
+        $rows = [];
 
-     foreach ($markets as $market) {
-       list($base, $counter) = explode('-', $market['MarketName']);
+        foreach ($markets as $market) {
+            list($base, $counter) = explode('-', $market['MarketName']);
 
-       unset($market['TimeStamp']);
+            unset($market['TimeStamp']);
 
-       $market['Volume'] = (int) round($market['Volume']);
+            $market['Volume'] = (int) round($market['Volume']);
 
-       $market['Buy'] = $market['OpenBuyOrders'];
-       $market['Sell'] = $market['OpenSellOrders'];
+            $market['Buy'] = $market['OpenBuyOrders'];
+            $market['Sell'] = $market['OpenSellOrders'];
 
-       unset($market['OpenBuyOrders'], $market['OpenSellOrders']);
+            unset($market['OpenBuyOrders'], $market['OpenSellOrders']);
 
-       foreach ($market as $key => &$value) {
-         if (is_float($value)) {
-           $value = number_format($value, 9);
-         }
-         elseif (is_int($value)) {
-           $value = number_format($value);
-         }
-       }
+            foreach ($market as $key => &$value) {
+                if (is_float($value)) {
+                    $value = number_format($value, 9);
+                } elseif (is_int($value)) {
+                    $value = number_format($value);
+                }
+            }
 
-        if (in_array($currency, [$base, $counter])) {
-          $rows[] = $market;
+            if (in_array($currency, [$base, $counter])) {
+                $rows[] = $market;
+            }
         }
-     }
 
-     $table = new Table($output);
-     $table->setHeaders(array_keys($rows[0]));
-     $table->setRows($rows);
-     $table->render();
-   }
+        $table = new Table($output);
+        $table->setHeaders(array_keys($rows[0]));
+        $table->setRows($rows);
+        $table->render();
+    }
 }
