@@ -65,4 +65,28 @@ class Math
     {
         return $this->float(bcdiv($this->float($a), $this->float($b), self::precision));
     }
+
+    public function eq($a, $b)
+    {
+      return floatval($a) === floatval($b);
+    }
+
+    public function gt($a, $b)
+    {
+      return floatval($a) > floatval($b);
+    }
+
+    public function lt($a, $b)
+    {
+      return floatval($a) < floatval($b);
+    }
+
+    public function percent($a, $b, $precision = 2) {
+      if (floatval($a) === 0 || floatval($b) === 0) {
+        return 0;
+      }
+      $x = $this->div($a, $b);
+      $x = $this->mul($x, 100);
+      return $this->float($x, $precision);
+    }
 }

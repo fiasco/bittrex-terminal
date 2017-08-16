@@ -6,11 +6,15 @@ require __DIR__.'/vendor/autoload.php';
 
 use Bittrex\Application\KernelApplication;
 use Bittrex\Command\TerminalCommand;
-use Bittrex\Term\LoopCommand;
+use Bittrex\Command\SetupCommand;
 
 $command = new TerminalCommand();
 $application = new KernelApplication();
 $application->add($command);
 $application->setDefaultCommand($command->getName());
-$application->add(new LoopCommand());
+
+foreach (TerminalCommand::commandRegistry() as $command) {
+  $application->add(new $command());
+}
+$application->add(new SetupCommand());
 $application->run();

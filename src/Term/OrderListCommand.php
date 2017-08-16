@@ -6,6 +6,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Command\Command;
+use Bittrex\Math\Math;
 
 class OrderListCommand extends Command
 {
@@ -35,21 +36,27 @@ class OrderListCommand extends Command
             return;
         }
 
+        $math = new Math();
+
         $rows = [];
         foreach ($orders as &$order) {
             $order['Limit'] = number_format($order['Limit'], 9);
             $rows[] = [
-         $order['OrderUuid'],
-         $order['OrderType'],
-         $order['Exchange'],
-         $order['Limit'],
-         $order['Quantity'],
-         $order['Price'],
-         $order['Opened'],
-       ];
+             $order['OrderUuid'],
+             $order['OrderType'],
+             $order['Exchange'],
+             $order['Limit'],
+             $order['Quantity'],
+             $math->percent(
+               $math->sub($order['Quantity'], $order['QuantityRemaining']),
+               $order['Quantity']
+             ) . '%',
+             $order['Price'],
+             $order['Opened'],
+           ];
         }
         $table = new Table($output);
-        $table->setHeaders(['UUID', 'Type', 'Market', 'Rate', 'Quantity', 'Price', 'Opened']);
+        $table->setHeaders(['UUID', 'Type', 'Market', 'Rate', 'Quantity', 'Filled', 'Price', 'Opened']);
         $table->setRows($rows);
         $table->render();
     }

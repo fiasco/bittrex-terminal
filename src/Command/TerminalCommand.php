@@ -45,28 +45,33 @@ class TerminalCommand extends Command
 HTML;
 
         $output->writeln("<info>$logo</info>");
+        $output->writeln("Donations welcome");
+        $output->writeln("  Bitcoin - <comment>1HR3w4Fme1uuUnfpF69aFeoBNSNm7otfFg</comment>");
+        $output->writeln("  Neo - <comment>APcdVor1bZGPjAxpeSe3AVx3UeYCswSQ9B</comment>");
+        $output->writeln("");
 
         $helper = $this->getHelper('question');
         $question = new Question('<comment>Bittrex</comment> > ', '');
-        $registry = $this->commandRegistry();
+        $registry = self::commandRegistry();
 
         $kernel = new KernelApplication("<info>$logo</info>", 'version 0.1');
         $kernel->setAutoExit(false);
 
-        $autocomplete = [];
+        $history = [];
 
         foreach ($registry as $command) {
             $instance = new $command();
-            $autocomplete[] = $instance->getName();
+            $history[] = $instance->getName();
             $kernel->add($instance);
         }
-
-        $question->setAutocompleterValues($autocomplete);
+        $question->setAutocompleterValues($history);
 
         $kernel->run(new ArgvInput([__FILE__, 'help']), $output);
 
         while (true) {
+            $question->setAutocompleterValues($history);
             $in = $helper->ask($input, $output, $question);
+            $history[] = $in;
             $in = explode(' ', $in);
             array_unshift($in, __FILE__);
             try {
@@ -78,11 +83,12 @@ HTML;
         }
     }
 
-    protected function commandRegistry()
+    static public function commandRegistry()
     {
         return [
         'Bittrex\Term\WalletShowCommand',
         'Bittrex\Term\MarketShowCommand',
+        'Bittrex\Term\MarketAnalyseCommand',
         'Bittrex\Term\OrderListCommand',
         'Bittrex\Term\OrderShowCommand',
         'Bittrex\Term\OrderCancelCommand',

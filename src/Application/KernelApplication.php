@@ -3,6 +3,8 @@
 namespace Bittrex\Application;
 
 use Symfony\Component\Console\Application;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\ConsoleOutput;
 use Bittrex\Client;
 
 class KernelApplication extends Application
@@ -20,14 +22,28 @@ class KernelApplication extends Application
         // Bittrex operates in UTC.
         date_default_timezone_get('UTC');
 
-        $keys = file_get_contents(dirname(__FILE__) . '/../../keys.json');
-        $keys = json_decode($keys);
+        $credentials_file = $_SERVER['HOME'] . '/.bittrex_terminal';
 
-        $this->client = new Client($keys->Key, $keys->Secret);
+        if (file_exists($credentials_file)) {
+          $keys = file_get_contents($_SERVER['HOME'] . '/.bittrex_terminal');
+          $keys = json_decode($keys);
+
+          $this->client = new Client($keys->Key, $keys->Secret);
+        }
     }
 
     public function api()
     {
+        if (empty($this->client)) {
+          $arguments = [];
+          $arguments['command'] = 'help';
+          $arguments['command_name'] = 'setup';
+
+          $i = new ArrayInput($arguments);
+          $this->find($arguments['command'])
+             ->run($i, new ConsoleOutput());
+          throw new \Exception("Credentials do no exist, please run setup.");
+        }
         return $this->client;
     }
 }
