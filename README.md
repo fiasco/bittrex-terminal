@@ -14,24 +14,32 @@
    ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝╚══════╝
 ```
 
+# Donations
+
+Bitcoin - `1HR3w4Fme1uuUnfpF69aFeoBNSNm7otfFg`
+Neo - `APcdVor1bZGPjAxpeSe3AVx3UeYCswSQ9B`
+
 This tool allows you to interact with Bittrex via a command line terminal.  
 
 ## Installation
 
-Download/Clone this repository and install dependancies with [composer](https://getcomposer.org/).
+Download/Clone this repository and install dependancies with [composer](https://getcomposer.org/). You will need a PHP runtime for this.
 
 ```
 composer install
 ```
 
-Go to Bittrex to obtain your API keys from your user profile. Add these to the
-codebase as `keys.json`:
+Go to Bittrex to obtain your API keys from your user profile. Run `setup` to install them into the Bittrex Terminal.
 
 ```
-php -r 'file_put_contents("keys.json", json_encode([
-    "Key": "API_KEY_HERE",
-    "Secret": "API_SECRET_HERE"
-  ]));'
+./bittrex setup
+```
+
+Symlink bittrex to your local `bin` for global execution.
+
+```
+ cd /usr/local/bin
+ ln -s /path/to/bittrex-terminal/bittrex
 ```
 
 ## Usage
