@@ -8,6 +8,7 @@ use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Helper\ProgressBar;
 use Bittrex\Math\Math;
 
 class MarketAnalyseCommand extends Command
@@ -45,32 +46,47 @@ class MarketAnalyseCommand extends Command
           return $base == $input->getArgument('base');
         });
 
+        $markets = array_filter($markets, function ($market) {
+          return $market['BaseVolume'] > 100;
+        });
+
         $math = new Math();
 
-        usort($markets, function ($a, $b) use ($math) {
-          return ($math->div($a['OpenBuyOrders'], $a['OpenSellOrders']) > $math->div($b['OpenBuyOrders'], $b['OpenSellOrders'])) ? 1 : -1;
-          list($aa, ) = explode('-', $a['MarketName']);
-          list($bb, ) = explode('-', $b['MarketName']);
-          $order = [$aa, $bb];
-          sort($order);
+        $progress = new ProgressBar($output, count($markets));
 
-          // Sort alphabetically if the bases are not the same.
-          if ($aa != $bb) {
-            return $order[0] == $aa ? -1 : 1;
+        // start and displays the progress bar
+        $progress->start();
+
+        array_walk($markets, function (&$market) use ($math, $progress) {
+          $json = file_get_contents('https://bittrex.com/Api/v2.0/pub/market/GetTicks?marketName=' . $market['MarketName'] . '&tickInterval=hour&_=' . time());
+          $data = json_decode($json, TRUE);
+          $sample = array_slice($data['result'], 0, 200);
+          $total = 0;
+          foreach ($sample as $point) {
+            $total = $math->add($total, $point['C']);
           }
-          if ($math->eq($a['BaseVolume'], $b['BaseVolume'])) {
-            return 0;
-          }
-          // Sort by base volume.
-          return $math->gt($a['BaseVolume'], $b['BaseVolume']) ? -1 : 1;
+          $market['MA200'] = $math->div($total, count($sample));
+          $market['MALastDiff'] = $math->sub($market['MA200'], $market['Last']);
+          $market['MALastDiff'] = $math->percent($market['MALastDiff'], $market['MA200']);
+          $progress->advance();
+        });
+
+        $progress->finish();
+
+        $markets = array_filter($markets, function ($market) use ($math) {
+          return $math->gt($market['MALastDiff'], 0);
+        });
+
+        usort($markets, function ($a, $b) use ($math) {
+          return $a['MALastDiff'] > $b['MALastDiff'] ? -1 : 1;
         });
 
         // Sum up the volume in BTC.
         $volume = call_user_func_array([$math, 'add'],
           array_map(
-            function ($market) use ($math) {
+            function ($market) use ($math, $input) {
               list($base, $counter) = explode('-', $market['MarketName']);
-              if ($base != 'BTC') {
+              if ($base != $input->getArgument('base')) {
                 return 0;
               }
               return $math->float($market['BaseVolume']);
@@ -91,7 +107,7 @@ class MarketAnalyseCommand extends Command
         $rows = [];
         foreach ($markets as $market) {
             list($base, $counter) = explode('-', $market['MarketName']);
-            $percent = $base == 'BTC' ? $math->mul($math->div($market['BaseVolume'], $volume), 100) : 0;
+            $percent = $base == $input->getArgument('base') ? $math->mul($math->div($market['BaseVolume'], $volume), 100) : 0;
             $rows[] = [
               $market['MarketName'],
               $math->format($market['BaseVolume'], 0) . ' ' . $base,
@@ -99,12 +115,13 @@ class MarketAnalyseCommand extends Command
               $formatter($market['OpenBuyOrders'], $market['OpenSellOrders']),
               $formatter($market['OpenSellOrders'], $market['OpenBuyOrders']),
               $math->format($math->div($market['OpenBuyOrders'], $market['OpenSellOrders']), 2),
-              $math->format($math->div($market['Bid'], $market['Ask']), 6)
+              $math->format($math->div($market['Bid'], $market['Ask']), 6),
+              $market['MALastDiff'],
             ];
         }
 
         $table = new Table($output);
-        $table->setHeaders(['Market', 'Volume', 'Market Share', 'Buys', 'Sells', 'B2S Ratio', 'B2A Ratio']);
+        $table->setHeaders(['Market', 'Volume', 'Market Share', 'Buys', 'Sells', 'B2S Ratio', 'B2A Ratio', 'Under Valued']);
         $table->setRows($rows);
         $table->render();
 

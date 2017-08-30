@@ -89,4 +89,15 @@ class Math
       $x = $this->mul($x, 100);
       return $this->float($x, $precision);
     }
+
+    public function avg($a, $b)
+    {
+        $factors = func_get_args();
+        $count = count($factors);
+        $total = array_shift($factors);
+        foreach ($factors as $factor) {
+            $total = bcadd($this->float($total), $this->float($factor), self::precision);
+        }
+        return $this->div($total, $count);
+    }
 }

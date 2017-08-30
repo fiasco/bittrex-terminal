@@ -71,8 +71,6 @@ class WalletShowCommand extends Command
             if (isset($markets["BTC-{$wallet['Currency']}"])) {
                 $market = $markets["BTC-{$wallet['Currency']}"];
 
-                array_walk($market, [$this, 'castFloatToString']);
-
                 // Spread: How much the currency moves in a 24-hr period.
                 $variation = $math->sub($market['High'], $market['Low']);
                 if (floatval($variation)) {
