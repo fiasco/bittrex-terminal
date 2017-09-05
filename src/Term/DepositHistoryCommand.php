@@ -34,9 +34,28 @@ class DepositHistoryCommand extends Command
         ->api()
         ->getDepositHistory($currency);
 
+        // $table = new Table($output);
+        // $table->setHeaders(array_keys($history[0]));
+        // $table->setRows($history);
+        // $table->render();
+
+        $math = new Math();
+        $totals = [];
+        foreach ($history as $deposit) {
+          if (!isset($totals[$deposit['Currency']])) {
+            $totals[$deposit['Currency']] = 0;
+          }
+          $totals[$deposit['Currency']] = $math->add($deposit['Amount'], $totals[$deposit['Currency']]);
+        }
+
+        $rows = [];
+        foreach ($totals as $curr => $total) {
+          $rows[] = ["<info>$curr</info>", $math->format($total)];
+        }
+
         $table = new Table($output);
-        $table->setHeaders(array_keys($history[0]));
-        $table->setRows($history);
+        $table->setHeaders(['Currency', 'Amount']);
+        $table->setRows($rows);
         $table->render();
     }
 }
