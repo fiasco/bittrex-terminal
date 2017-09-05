@@ -47,7 +47,7 @@ class MarketAnalyseCommand extends Command
         });
 
         $markets = array_filter($markets, function ($market) {
-          return $market['BaseVolume'] > 100;
+          return $market['BaseVolume'] > 200;
         });
 
         $math = new Math();
@@ -56,6 +56,7 @@ class MarketAnalyseCommand extends Command
 
         // start and displays the progress bar
         $progress->start();
+        $output->writeln('');
 
         array_walk($markets, function (&$market) use ($math, $progress) {
           $json = file_get_contents('https://bittrex.com/Api/v2.0/pub/market/GetTicks?marketName=' . $market['MarketName'] . '&tickInterval=hour&_=' . time());
