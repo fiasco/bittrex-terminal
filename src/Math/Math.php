@@ -90,9 +90,9 @@ class Math
       return $this->float($x, $precision);
     }
 
-    public function avg($a, $b)
+    public function avg($a, $b = NULL)
     {
-        $factors = func_get_args();
+        $factors = is_array($a) ? $a : func_get_args();
         $count = count($factors);
         $total = array_shift($factors);
         foreach ($factors as $factor) {

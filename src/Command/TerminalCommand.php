@@ -88,6 +88,7 @@ HTML;
         return [
         'Bittrex\Term\WalletShowCommand',
         'Bittrex\Term\MarketShowCommand',
+        'Bittrex\Term\MarketWatchCommand',
         'Bittrex\Term\MarketAnalyseCommand',
         'Bittrex\Term\OrderListCommand',
         'Bittrex\Term\OrderShowCommand',
@@ -99,6 +100,7 @@ HTML;
         'Bittrex\Term\CoinAnalyseCommand',
         'Bittrex\Term\LoopCommand',
         'Bittrex\Term\DepositHistoryCommand',
+        'Bittrex\Term\PositionsCommand',
       ];
     }
 }
