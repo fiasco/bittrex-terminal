@@ -101,6 +101,7 @@ HTML;
         'Bittrex\Term\LoopCommand',
         'Bittrex\Term\DepositHistoryCommand',
         'Bittrex\Term\PositionsCommand',
+        'Bittrex\Term\WithdrawHistoryCommand',
       ];
     }
 }
