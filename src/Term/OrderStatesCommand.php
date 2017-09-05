@@ -35,28 +35,33 @@ class OrderStatesCommand extends Command
     {
 
         do {
-          list($rows, $usdCashOut) = $this->getOrderStates();
+          try {
+            list($rows, $usdCashOut) = $this->getOrderStates();
 
-          // Remove the last render.
-          if (isset($lines)) {
+            // Remove the last render.
+            if (isset($lines)) {
 
-            // Move the cursor to the beginning of the line
-            $output->write("\x0D");
+              // Move the cursor to the beginning of the line
+              $output->write("\x0D");
 
-            // Erase the line
-            $output->write("\x1B[2K");
-            $output->write(str_repeat("\x1B[1A\x1B[2K", $lines));
+              // Erase the line
+              $output->write("\x1B[2K");
+              $output->write(str_repeat("\x1B[1A\x1B[2K", $lines));
+            }
+            $lines = count($rows) + 5;
+
+            $table = new Table($output);
+            $table->setHeaders(['Age', 'Currency', 'Quantity', 'Buy-in', 'Buy-in (USD)', 'Last', 'Change', 'P&L (BTC)', 'P&L (USD)']);
+            $table->setRows($rows);
+            $table->render();
+
+            $tag = $usdCashOut >= 0 ? 'info' : 'error';
+            $usdCashOut = number_format($usdCashOut, 2);
+            $output->writeln("Esitmated cash position: <$tag>\$$usdCashOut USD</$tag>");
           }
-          $lines = count($rows) + 5;
-
-          $table = new Table($output);
-          $table->setHeaders(['Age', 'Currency', 'Quantity', 'Buy-in', 'Buy-in (USD)', 'Last', 'Change', 'P&L (BTC)', 'P&L (USD)']);
-          $table->setRows($rows);
-          $table->render();
-
-          $tag = $usdCashOut >= 0 ? 'info' : 'error';
-          $usdCashOut = number_format($usdCashOut, 2);
-          $output->writeln("Esitmated cash position: <$tag>\$$usdCashOut USD</$tag>");
+          catch (\Exception $e) {
+            $output->writeln('<error>' . $e->getMessage() . '</error>');
+          }
 
           if ($input->getOption('poll')) {
             sleep(15);
@@ -133,6 +138,7 @@ class OrderStatesCommand extends Command
 
           // Ensure a sale tracker exists.
           $sale[$counter] = isset($sale[$counter]) ? $sale[$counter] : 0;
+          $sale[$base] = isset($sale[$base]) ? $sale[$base] : 0;
 
           switch ($order['OrderType']) {
              case 'LIMIT_BUY':
@@ -143,50 +149,79 @@ class OrderStatesCommand extends Command
                     $sale[$counter] = $math->sub($sale[$counter], $order['Quantity']);
                     continue;
                 }
+                $sale[$base] = $math->add($sale[$base], $order['Price']);
 
                 // Subtract the what's been sold since this order from the total
                 // quantity position.
                 $order['Quantity'] = $math->sub($order['Quantity'], $order['QuantityRemaining'], $sale[$counter]);
+
+                if ($math->lt($order['Quantity'], 0)) {
+                  continue;
+                }
                 // Reset the sale tracker
                 $sale[$counter] = 0;
 
-                $change = round(
-                  $math->mul($math->div($market['Last'], $order['PricePerUnit']), 100) - 100,
+                $change = $math->format(
+                  $math->percent($market['Last'], $order['PricePerUnit']) - 100,
                 2);
 
-                $oldValue = $math->mul($order['Quantity'], $order['PricePerUnit']);
-                $newValue = $math->mul($order['Quantity'], $market['Last']);
-                $gain = $math->sub($newValue, $oldValue);
-                $usdGain = $math->mul($gain, $usd['Last']);
-                $usdCashOut = $math->add($usdCashOut, $usdGain);
-                $usdGain = number_format($usdGain, 2);
-                $usdSpend = $math->format($math->mul($oldValue, $usd['Last']), 2);
+                $gain = $math->sub(
+                  $math->mul($order['Quantity'], $market['Last']),
+                  $math->mul($order['Quantity'], $order['PricePerUnit'])
+                );
 
-                $gain = $gain > 0 ? "+$gain" : $gain;
+                // This should be reported in BTC.
+                $buyIn = $order['PricePerUnit'];
+                $usdReport = [
+                  'Spend' => $math->mul(
+                    $math->mul($order['Quantity'], $order['PricePerUnit']),
+                    $usd['Last']
+                  ),
+                  'Gain' => $math->mul($gain, $usd['Last']),
+                ];
 
-                $tag = $change >= 0 ? 'info' : 'error';
+                // Unique condition
+                if ($order['Exchange'] == 'USDT-BTC') {
+                  // This will be in USD so needs to be converted into BTC.
+                  $buyIn = $order['Quantity'];
+                  $usdReport['Spend'] = $math->mul($order['PricePerUnit'], $order['Quantity']);
+                  $usdReport['Gain'] = $gain;
+                  $gain = 0.0;
+                  $market['Last'] = $order['Quantity'];
+                }
+
+                $usdCashOut = $math->add($usdCashOut, $usdReport['Gain']);
+
+                $tag = $change >= 0 ? 'fg=green' : 'fg=red';
 
                 $time = strtotime($order['TimeStamp']);
                 $since = time() - $time - (12 * 60 * 60);
 
-                $rows[] = [
-                  $this->format_interval($since),
-                  $counter,
-                  $order['Quantity'],
-                  number_format($order['PricePerUnit'], 9),
-                  "\$$usdSpend",
-                  number_format($market['Last'], 9),
-                  "<$tag>$change%</$tag>",
-                  "<$tag>$gain</$tag>",
-                  "<$tag>\$$usdGain</$tag>",
+                $tokens = [
+                  '@tag' => $tag,
+                  '@change' => $change,
+                  '@gain' => $math->format($gain, 9),
+                  '@gainUSD' => $math->format($usdReport['Gain'], 2),
                 ];
 
-                $rollingBalance[$counter] = bcadd($rollingBalance[$counter], $order['Quantity'], 9);
+                $rows[] = [
+                  'Age' => $this->format_interval($since),
+                  'Currency' => $counter,
+                  'Quantity' => $order['Quantity'],
+                  'Buy-in' => $math->format($buyIn),
+                  $math->format($usdReport['Spend'],2),
+                  $math->format($market['Last']),
+                  strtr("<@tag>@change%</>", $tokens),
+                  strtr("<@tag>@gain</>", $tokens),
+                  strtr("<@tag>@gainUSD</>", $tokens),
+                ];
+
+                $rollingBalance[$counter] = $math->add($rollingBalance[$counter], $order['Quantity']);
                 break;
 
              case 'LIMIT_SELL':
-              $rollingBalance[$counter] = bcsub($rollingBalance[$counter], $order['Quantity'], 9);
-              $sale[$counter] = bcadd($sale[$counter], $order['Quantity'], 9);
+              $rollingBalance[$counter] = $math->sub($rollingBalance[$counter], $order['Quantity']);
+              $sale[$counter] = $math->add($sale[$counter], $order['Quantity']);
               break;
            }
       }

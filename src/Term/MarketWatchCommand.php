@@ -39,21 +39,45 @@ class MarketWatchCommand extends Command
     {
       $math = new Math();
       $update = FALSE;
-      $ticker = new MarketTicker();
+      $ma20 = new MarketTicker();
+      $ma20->setAveragePeriod(20);
+      $ma50 = new MarketTicker();
+      $ma50->setAveragePeriod(50);
+      $ma200 = new MarketTicker();
+      $ma200->setAveragePeriod(200);
+
       while (TRUE) {
-        $markets = $this->getApplication()
-          ->api()
-          ->getMarketSummary($input->getArgument('market'));
+        try {
+          $markets = $this->getApplication()
+            ->api()
+            ->getMarketSummary($input->getArgument('market'));
+        }
+        catch (\Exception $e) {
+          sleep($input->getOption('frequency'));
+          continue;
+        }
 
-        $ticker->update($markets[0]);
 
+        $ma20->update($markets[0]);
+        $ma50->update($markets[0]);
+        $ma200->update($markets[0]);
 
-        $rows = [];
+        $rows = [[
+            'Moving Average',
+            $math->format($math->mul(20, $input->getOption('frequency')),0) . 's',
+            $math->format($math->mul(50, $input->getOption('frequency')),0) . 's',
+            $math->format($math->mul(200, $input->getOption('frequency')),0) . 's',
+        ]];
         foreach (array_keys($markets[0]) as $field) {
           if (in_array($field, ['Created', 'TimeStamp'])) {
             continue;
           }
-          $rows[] = [$field, $ticker->display($field)];
+          $rows[] = [
+            $field,
+            $ma20->display($field),
+            $ma50->display($field),
+            $ma200->display($field)
+          ];
         }
 
         if ($update) {
@@ -68,9 +92,9 @@ class MarketWatchCommand extends Command
         $table->setRows($rows);
         $table->render();
 
-        $timeframe = $math->format($math->mul($ticker->getAveragePeriod(), $input->getOption('frequency')), 0);
+        $timeframe = $math->format($math->mul($ma200->getAveragePeriod(), $input->getOption('frequency')), 0);
 
-        $output->writeln("<comment>Movement based on a period of $timeframe seconds.</comment>");
+        $output->writeln("<comment>Movement based on a period of $timeframe seconds at " . $input->getOption('frequency') . " second intervals.</comment>");
 
         $update = TRUE;
 
