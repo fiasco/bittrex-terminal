@@ -6,7 +6,7 @@ class Math
 {
     const precision = 9;
 
-    public function float($val, $precision = 9)
+    public function float($val, $precision = 8)
     {
         $val = number_format($val, $precision, '.', '');
 
@@ -23,8 +23,18 @@ class Math
         return $val;
     }
 
-    public function format($val, $precision = 9)
+    public function format($val, $precision = 8)
     {
+        if ($precision === FALSE) {
+          $value = number_format($this->float($val), 8);
+          while (substr($value, -1) === '0') {
+            $value = substr($value, 0, -1);
+          }
+          if (substr($value, -1) == '.') {
+            $value = substr($value, 0, -1);
+          }
+          return $value;
+        }
         return number_format($this->float($val), $precision);
     }
 

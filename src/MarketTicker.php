@@ -51,7 +51,7 @@ class MarketTicker {
     return $history;
   }
 
-  public function display($key)
+  public function display($key, $average = FALSE)
   {
     $math = new Math();
     if (!is_numeric($this->market[$key])) {
@@ -77,13 +77,13 @@ class MarketTicker {
     $pct = $math->format($math->percent($this->market[$key], $prev[$key]) - 100, 2);
     if ($math->gt($this->market[$key], $prev[$key])) {
       return strtr('@value <info>(▲ @change%)</info>', [
-        '@value' => $math->format($this->market[$key], $d),
+        '@value' => $math->format($average ? $prev[$key] : $this->market[$key], $d),
         '@change' => $pct,
       ]);
     }
     else {
       return strtr('@value <fg=red>(▼ @change%)</>', [
-        '@value' => $math->format($this->market[$key], $d),
+        '@value' => $math->format($average ? $prev[$key] : $this->market[$key], $d),
         '@change' => $pct,
       ]);
     }
