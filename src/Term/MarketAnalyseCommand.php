@@ -24,108 +24,84 @@ class MarketAnalyseCommand extends Command
 
        // the full command description shown when running the command with
        // the "--help" option
-       ->setHelp('Look for investment opportunities in the market')
-       ->addArgument('base', InputArgument::OPTIONAL, 'The base market to show. E.g. BTC', 'BTC')
-       ->addOption(
-        'limit',
-        'l',
-         InputOption::VALUE_OPTIONAL,
-         'Display the top $limit markets ordered by Volume. Default to 20',
-         20
-       );
+       ->setHelp('Look for investment opportunities in the market');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $markets = $this->getApplication()
+        $summaries = $this->getApplication()
           ->api()
           ->getMarketSummaries();
 
-        $markets = array_filter($markets, function ($market) use ($input) {
+        $m = new Math;
+
+        $markets = [];
+
+        foreach ($summaries as $market) {
+
           list($base, $counter) = explode('-', $market['MarketName']);
-          return $base == $input->getArgument('base');
-        });
-
-        $markets = array_filter($markets, function ($market) {
-          return $market['BaseVolume'] > 200;
-        });
-
-        $math = new Math();
-
-        $progress = new ProgressBar($output, count($markets));
-
-        // start and displays the progress bar
-        $progress->start();
-        $output->writeln('');
-
-        array_walk($markets, function (&$market) use ($math, $progress) {
-          $json = file_get_contents('https://bittrex.com/Api/v2.0/pub/market/GetTicks?marketName=' . $market['MarketName'] . '&tickInterval=hour&_=' . time());
-          $data = json_decode($json, TRUE);
-          $sample = array_slice($data['result'], 0, 200);
-          $total = 0;
-          foreach ($sample as $point) {
-            $total = $math->add($total, $point['C']);
+          if ($base != 'BTC') {
+            continue;
           }
-          $market['MA200'] = $math->div($total, count($sample));
-          $market['MALastDiff'] = $math->sub($market['MA200'], $market['Last']);
-          $market['MALastDiff'] = $math->percent($market['MALastDiff'], $market['MA200']);
-          $progress->advance();
-        });
 
-        $progress->finish();
+          $output->writeln($market['MarketName'] . '...');
+          $out = file_get_contents('https://bittrex.com/Api/v2.0/pub/market/GetTicks?marketName=' . $market['MarketName'] . '&tickInterval=day&_=' . time());
+          $out = json_decode($out, TRUE);
+          
+          // Often the first day is bad data. So avoid it.
+          $tick = array_shift($out['result']);
+          $tick = array_shift($out['result']);
 
-        $markets = array_filter($markets, function ($market) use ($math) {
-          return $math->gt($market['MALastDiff'], 0);
-        });
+          $markets[$market['MarketName']] = [
+            'MarketName' => $market['MarketName'],
+            'High' => $tick['H'],
+            'Low' => $tick['L'],
+            'Last' => $tick['C'],
+            'HighTime' => $tick['T'],
+            'LowTime' => $tick['T'],
+            'Average' => [$tick['C']],
+          ];
+          $mk = &$markets[$market['MarketName']];
 
-        usort($markets, function ($a, $b) use ($math) {
-          return $a['MALastDiff'] > $b['MALastDiff'] ? -1 : 1;
-        });
-
-        // Sum up the volume in BTC.
-        $volume = call_user_func_array([$math, 'add'],
-          array_map(
-            function ($market) use ($math, $input) {
-              list($base, $counter) = explode('-', $market['MarketName']);
-              if ($base != $input->getArgument('base')) {
-                return 0;
-              }
-              return $math->float($market['BaseVolume']);
-            },
-          $markets
-        ));
-
-        $markets = array_slice($markets, 0, $input->getOption('limit'));
-
-        // Formatter to highlight the higher value.
-        $formatter = function ($a, $b) {
-          if ($a > $b) {
-            return "<comment>$a</comment>";
+          while ($tick = array_shift($out['result'])) {
+            if ($m->gt($tick['H'], $mk['High'])) {
+              $mk['High'] = $tick['H'];
+              $mk['HighTime'] = $tick['T'];
+            }
+            if ($m->lt($tick['L'], $mk['Low'])) {
+              $mk['Low'] = $tick['L'];
+              $mk['LowTime'] = $tick['T'];
+            }
+            $mk['Last'] = $tick['C'];
+            $mk['Average'][] = $tick['C'];
           }
-          return $a;
-        };
 
-        $rows = [];
-        foreach ($markets as $market) {
-            list($base, $counter) = explode('-', $market['MarketName']);
-            $percent = $base == $input->getArgument('base') ? $math->mul($math->div($market['BaseVolume'], $volume), 100) : 0;
-            $rows[] = [
-              $market['MarketName'],
-              $math->format($market['BaseVolume'], 0) . ' ' . $base,
-              $math->format($percent, 2) . '%',
-              $formatter($market['OpenBuyOrders'], $market['OpenSellOrders']),
-              $formatter($market['OpenSellOrders'], $market['OpenBuyOrders']),
-              $math->format($math->div($market['OpenBuyOrders'], $market['OpenSellOrders']), 2),
-              $math->format($math->div($market['Bid'], $market['Ask']), 6),
-              $market['MALastDiff'],
-            ];
+          $mk['Average'] = $m->avg($mk['Average']);
         }
 
-        $table = new Table($output);
-        $table->setHeaders(['Market', 'Volume', 'Market Share', 'Buys', 'Sells', 'B2S Ratio', 'B2A Ratio', 'Under Valued']);
-        $table->setRows($rows);
-        $table->render();
+        foreach ($markets as &$market) {
+          $market['Spread'] = $m->percent($m->sub($market['High'], $market['Low']), $market['Low']);
+          $market['BounceFromTheBottom'] = $m->percent($market['Last'], $market['Low']) - 100;
 
-        return $markets[0];
+          $market['High'] = $m->format($market['High']);
+          $market['Low'] = $m->format($market['Low']);
+          $market['Last'] = $m->format($market['Last']);
+
+          $market['HighTime'] = date('Y-m-d', strtotime($market['HighTime']));
+          $market['LowTime'] = date('Y-m-d', strtotime($market['LowTime']));
+        }
+
+        $markets = array_values($markets);
+        usort($markets, function ($a, $b) {
+          if ($a['BounceFromTheBottom'] == $b['BounceFromTheBottom']) {
+            return 0;
+          }
+          return $a['BounceFromTheBottom'] > $b['BounceFromTheBottom'] ? 1 : -1;
+        });
+
+        $table = new Table($output);
+        $table->setHeaders(array_keys($markets[0]));
+        $table->setRows($markets);
+        $table->render();
     }
 }

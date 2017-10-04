@@ -105,7 +105,7 @@ class BuyCommand extends Command
 
             $output->writeln("You have a $base balance of <info>$avail</info> available.");
             $coin = Order::calculateTransactableVolume($balance['Available']);
-            $units = bcdiv($coin, $rate, Order::precision);
+            $units = $math->div($coin, $rate);
             $output->writeln("You can buy a maximum of $units $counter @ $rate $base.");
 
             $question = new Question("How many $counter would you like to buy? ", 0);

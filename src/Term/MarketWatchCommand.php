@@ -31,20 +31,39 @@ class MarketWatchCommand extends Command
         'f',
          InputOption::VALUE_OPTIONAL,
          'Update frequency in seconds. Defaults to 5.',
-         5
+         2
+       )
+       ->addOption(
+        'ma',
+        'm',
+        InputOption::VALUE_IS_ARRAY | InputOption::VALUE_OPTIONAL,
+        'Set a moving averages',
+        [30]
        );
+       // InputOption::VALUE_IS_ARRAY
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+      $avgs = $input->getOption('ma');
+      sort($avgs);
+
       $math = new Math();
       $update = FALSE;
-      $ma20 = new MarketTicker();
-      $ma20->setAveragePeriod(20);
-      $ma50 = new MarketTicker();
-      $ma50->setAveragePeriod(50);
-      $ma200 = new MarketTicker();
-      $ma200->setAveragePeriod(200);
+      $ma = [];
+
+      foreach ($avgs as $avg) {
+        $ticker = new MarketTicker();
+        $ticker->setAveragePeriod($avg);
+        $ma[] = $ticker;
+      }
+
+      // Update all tickers.
+      $updater = function ($market) use ($ma) {
+        foreach ($ma as $ticker) {
+          $ticker->update($market);
+        }
+      };
 
       while (TRUE) {
         try {
@@ -57,27 +76,26 @@ class MarketWatchCommand extends Command
           continue;
         }
 
+        $updater($markets[0]);
 
-        $ma20->update($markets[0]);
-        $ma50->update($markets[0]);
-        $ma200->update($markets[0]);
+        $headers = array_merge(['Moving Average'], $avgs);
 
-        $rows = [[
-            'Moving Average',
-            $math->format($math->mul(20, $input->getOption('frequency')),0) . 's',
-            $math->format($math->mul(50, $input->getOption('frequency')),0) . 's',
-            $math->format($math->mul(200, $input->getOption('frequency')),0) . 's',
-        ]];
+        $rows = [];
+
         foreach (array_keys($markets[0]) as $field) {
           if (in_array($field, ['Created', 'TimeStamp'])) {
             continue;
           }
-          $rows[] = [
-            $field,
-            $ma20->display($field),
-            $ma50->display($field),
-            $ma200->display($field)
-          ];
+          $row = [$field];
+
+          $ticker = reset($ma);
+          $row[] = $ticker->display($field);
+
+          while($ticker = next($ma)) {
+            $row[] = $ticker->display($field, TRUE);
+          }
+
+          $rows[] = $row;
         }
 
         if ($update) {
@@ -85,14 +103,15 @@ class MarketWatchCommand extends Command
 
           // Erase the line
           $output->write("\x1B[2K");
-          $output->write(str_repeat("\x1B[1A\x1B[2K", count($rows) + 3));
+          $output->write(str_repeat("\x1B[1A\x1B[2K", count($rows) + 5));
         }
 
         $table = new Table($output);
+        $table->setHeaders($headers);
         $table->setRows($rows);
         $table->render();
 
-        $timeframe = $math->format($math->mul($ma200->getAveragePeriod(), $input->getOption('frequency')), 0);
+        $timeframe = $math->format($math->mul(end($ma)->getAveragePeriod(), $input->getOption('frequency')), 0);
 
         $output->writeln("<comment>Movement based on a period of $timeframe seconds at " . $input->getOption('frequency') . " second intervals.</comment>");
 

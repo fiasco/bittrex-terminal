@@ -95,12 +95,13 @@ HTML;
         'Bittrex\Term\OrderCancelCommand',
         'Bittrex\Term\OrderHistoryCommand',
         'Bittrex\Term\OrderStatesCommand',
+        'Bittrex\Term\OrderPendingCommand',
         'Bittrex\Term\BuyCommand',
         'Bittrex\Term\SellCommand',
         'Bittrex\Term\CoinAnalyseCommand',
         'Bittrex\Term\LoopCommand',
         'Bittrex\Term\DepositHistoryCommand',
-        'Bittrex\Term\PositionsCommand',
+        'Bittrex\Term\BoxTradeCommand',
         'Bittrex\Term\WithdrawHistoryCommand',
       ];
     }

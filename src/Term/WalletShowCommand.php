@@ -7,6 +7,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Command\Command;
 use Bittrex\Math\Math;
+use Bittrex\FormattableFloat;
 
 class WalletShowCommand extends Command
 {
@@ -42,8 +43,6 @@ class WalletShowCommand extends Command
         }
 
         foreach ($balances as &$wallet) {
-            $wallet['Balance'] = $math->format($wallet['Balance']);
-            $wallet['Available'] = $math->format($wallet['Available']);
             $wallet['Est. BTC'] = 0;
             unset($wallet['Pending'], $wallet['CryptoAddress']);
 
@@ -66,6 +65,8 @@ class WalletShowCommand extends Command
                 $wallet['Est. BTC'] = $math->mul($wallet['Balance'], $market['Last']);
                 break;
             }
+            $wallet['Balance'] = $math->format($wallet['Balance']);
+            $wallet['Available'] = $math->format($wallet['Available']);
         }
 
         $estBTC = 0;
@@ -82,6 +83,10 @@ class WalletShowCommand extends Command
         }
 
         $headers = array_keys($rows[0]);
+
+        foreach ($rows as &$row) {
+          $row['Est. BTC'] = (new FormattableFloat($row['Est. BTC']))->getBtcString();
+        }
 
         $this->formatColumns($rows);
 
